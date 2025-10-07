@@ -24,7 +24,7 @@ const statusTypes = [ 'dnd', 'idle'];
 let currentStatusIndex = 0;
 let currentTypeIndex = 0;
 
-async function registerCommands() {
+async function registerCommands(clientId) {
   const commands = [
     new SlashCommandBuilder()
       .setName('ping')
@@ -36,7 +36,7 @@ async function registerCommands() {
   try {
     console.log('\x1b[36m[ COMMANDS ]\x1b[0m', 'Started refreshing application (/) commands.');
     await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
+      Routes.applicationCommands(clientId),
       { body: commands },
     );
     console.log('\x1b[36m[ COMMANDS ]\x1b[0m', '\x1b[32mSuccessfully registered application commands. ✅\x1b[0m');
@@ -51,7 +51,7 @@ async function login() {
     console.log('\x1b[36m[ LOGIN ]\x1b[0m', `\x1b[32mLogged in as: ${client.user.tag} ✅\x1b[0m`);
     console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[35mBot ID: ${client.user.id} \x1b[0m`);
     console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[34mConnected to ${client.guilds.cache.size} server(s) \x1b[0m`);
-    await registerCommands();
+    await registerCommands(client.user.id);
   } catch (error) {
     console.error('\x1b[31m[ ERROR ]\x1b[0m', 'Failed to log in:', error);
     process.exit(1);
@@ -76,7 +76,7 @@ function heartbeat() {
   }, 30000);
 }
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[34mPing: ${client.ws.ping} ms \x1b[0m`);
   updateStatus();
   setInterval(updateStatus, 10000);
