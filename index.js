@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, ActivityType, REST, Routes, SlashCommandBuilder } = require('discord.js');
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -24,12 +24,34 @@ const statusTypes = [ 'dnd', 'idle'];
 let currentStatusIndex = 0;
 let currentTypeIndex = 0;
 
+async function registerCommands() {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName('ping')
+      .setDescription('Replies with bot latency and API ping')
+  ].map(command => command.toJSON());
+
+  const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
+  try {
+    console.log('\x1b[36m[ COMMANDS ]\x1b[0m', 'Started refreshing application (/) commands.');
+    await rest.put(
+      Routes.applicationCommands(process.env.CLIENT_ID),
+      { body: commands },
+    );
+    console.log('\x1b[36m[ COMMANDS ]\x1b[0m', '\x1b[32mSuccessfully registered application commands. ✅\x1b[0m');
+  } catch (error) {
+    console.error('\x1b[31m[ ERROR ]\x1b[0m', 'Failed to register commands:', error);
+  }
+}
+
 async function login() {
   try {
     await client.login(process.env.TOKEN);
     console.log('\x1b[36m[ LOGIN ]\x1b[0m', `\x1b[32mLogged in as: ${client.user.tag} ✅\x1b[0m`);
     console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[35mBot ID: ${client.user.id} \x1b[0m`);
     console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[34mConnected to ${client.guilds.cache.size} server(s) \x1b[0m`);
+    await registerCommands();
   } catch (error) {
     console.error('\x1b[31m[ ERROR ]\x1b[0m', 'Failed to log in:', error);
     process.exit(1);
@@ -59,6 +81,18 @@ client.once('ready', () => {
   updateStatus();
   setInterval(updateStatus, 10000);
   heartbeat();
+});
+
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+  if (interaction.commandName === 'ping') {
+    const sent = await interaction.reply({ content: 'Pinging...', fetchReply: true });
+    const latency = sent.createdTimestamp - interaction.createdTimestamp;
+    const apiLatency = Math.round(client.ws.ping);
+    
+    await interaction.editReply(`🏓 Pong!\n**Latency:** ${latency}ms\n**API Ping:** ${apiLatency}ms`);
+  }
 });
 
 login();
